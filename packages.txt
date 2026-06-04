@@ -1,2 +1,13 @@
 chromium
 chromium-driver
+libnss3
+libatk-bridge2.0-0
+libx11-xcb1
+libxcb-dri3-0
+libxcomposite1
+libxcursor1
+libxdamage1
+libxi6
+libxxtst6
+libpango-1.0-0
+libasound2
