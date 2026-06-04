@@ -4,8 +4,16 @@ import io
 import asyncio
 import zipfile
 from playwright.async_api import async_playwright
+import os # Tambahkan import os jika belum ada
 
-# set_page_config HARUS di baris pertama setelah import
+# --- OTOMASI INSTALASI BINER BROWSER PLAYWRIGHT DI SERVER CLOUD ---
+if "playwright_installed" not in st.session_state:
+    with st.spinner("Menginisialisasi sistem PDF Linux... Harap tunggu sebentar (hanya saat pertama kali dijalankan)..."):
+        # Menjalankan perintah instalasi browser secara latar belakang di server Linux Streamlit
+        os.system("python -m playwright install chromium")
+        st.session_state["playwright_installed"] = True
+
+# set_page_config HARUS di baris pertama setelah import (atau setelah inisialisasi di atas)
 st.set_page_config(layout="wide", page_title="Monitoring Jabatan ASN")
 
 # --- CSS KHUSUS TAMPILAN WEB STREAMLIT (DENGAN REKAYASA WRAP TEXT & ANTI-POTONG) ---
@@ -262,7 +270,11 @@ def get_full_html_document(title_unit, tree_content):
 # --- BACKEND FUNCTION: GENERATOR SINGLE PDF ---
 async def generate_pdf_from_html(html_content):
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        # PERBAIKAN: Tambahkan args=['--no-sandbox', '--disable-setuid-sandbox'] agar lancar di Linux Cloud
+        browser = await p.chromium.launch(
+            headless=True,
+            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        )
         page = await browser.new_page(viewport={"width": 7000, "height": 3000})
         await page.set_content(html_content, wait_until="networkidle")
         
