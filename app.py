@@ -4,16 +4,30 @@ import io
 import asyncio
 import zipfile
 from playwright.async_api import async_playwright
-import os # Tambahkan import os jika belum ada
+import os
+import stat
+from pathlib import Path
 
-# --- OTOMASI INSTALASI BINER BROWSER PLAYWRIGHT DI SERVER CLOUD ---
+# --- OTOMASI INSTALASI & PERMISSION BROWSER PLAYWRIGHT ---
 if "playwright_installed" not in st.session_state:
-    with st.spinner("Menginisialisasi sistem PDF Linux... Harap tunggu sebentar (hanya saat pertama kali dijalankan)..."):
-        # Menjalankan perintah instalasi browser secara latar belakang di server Linux Streamlit
+    with st.spinner("Menginisialisasi modul PDF tingkat lanjut... Harap tunggu sebentar..."):
+        # 1. Unduh biner Chromium ke virtual env server
         os.system("python -m playwright install chromium")
+        
+        # 2. Cari di mana biner itu terinstal di cache Linux Streamlit
+        home_dir = Path.home()
+        playwright_cache = home_dir / ".cache" / "ms-playwright"
+        
+        # 3. Jika folder cache ditemukan, berikan izin eksekusi (+x) ke semua file di dalamnya
+        if playwright_cache.exists():
+            for path in playwright_cache.glob("**/*"):
+                if path.is_file():
+                    current_mode = path.stat().st_mode
+                    path.chmod(current_mode | stat.S_IEXEC)
+                    
         st.session_state["playwright_installed"] = True
 
-# set_page_config HARUS di baris pertama setelah import (atau setelah inisialisasi di atas)
+# set_page_config tetap berada setelah inisialisasi di atas
 st.set_page_config(layout="wide", page_title="Monitoring Jabatan ASN")
 
 # --- CSS KHUSUS TAMPILAN WEB STREAMLIT (DENGAN REKAYASA WRAP TEXT & ANTI-POTONG) ---
@@ -273,7 +287,7 @@ async def generate_pdf_from_html(html_content):
         # PERBAIKAN: Tambahkan args=['--no-sandbox', '--disable-setuid-sandbox'] agar lancar di Linux Cloud
         browser = await p.chromium.launch(
             headless=True,
-            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
         )
         page = await browser.new_page(viewport={"width": 7000, "height": 3000})
         await page.set_content(html_content, wait_until="networkidle")
@@ -304,7 +318,10 @@ async def generate_all_charts_zip(df_master_merge, col_unit, build_tree_fn):
     unit_list = df_master_merge[col_unit].dropna().unique()
     
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(
+            headless=True,
+            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        )
         page = await browser.new_page(viewport={"width": 7000, "height": 3000})
         
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
