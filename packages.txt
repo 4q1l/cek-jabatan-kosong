@@ -8,6 +8,6 @@ libxcomposite1
 libxcursor1
 libxdamage1
 libxi6
-libxxtst6
+libxtst6
 libpango-1.0-0
 libasound2
