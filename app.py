@@ -5,29 +5,28 @@ import asyncio
 import zipfile
 from playwright.async_api import async_playwright
 import os
-import stat
-from pathlib import Path
+import sys
+import subprocess
 
-# --- OTOMASI INSTALASI & PERMISSION BROWSER PLAYWRIGHT ---
+# --- PERBAIKAN UTAMA: FORCE PLAYWRIGHT PATH DI STREAMLIT CLOUD ---
+# Mengatur environment variable agar Playwright konsisten menggunakan folder lokal venv
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = os.path.join(os.getcwd(), ".playwright-browsers")
+
 if "playwright_installed" not in st.session_state:
-    with st.spinner("Menginisialisasi modul PDF tingkat lanjut... Harap tunggu sebentar..."):
-        # 1. Unduh biner Chromium ke virtual env server
-        os.system("python -m playwright install chromium")
-        
-        # 2. Cari di mana biner itu terinstal di cache Linux Streamlit
-        home_dir = Path.home()
-        playwright_cache = home_dir / ".cache" / "ms-playwright"
-        
-        # 3. Jika folder cache ditemukan, berikan izin eksekusi (+x) ke semua file di dalamnya
-        if playwright_cache.exists():
-            for path in playwright_cache.glob("**/*"):
-                if path.is_file():
-                    current_mode = path.stat().st_mode
-                    path.chmod(current_mode | stat.S_IEXEC)
-                    
-        st.session_state["playwright_installed"] = True
+    with st.spinner("Menginisialisasi Chromium Engine untuk PDF (Mohon tunggu, ini hanya sekali saja)..."):
+        try:
+            # Menggunakan sys.executable memastikan kita memakai Python venv Streamlit, BUKAN Python sistem global
+            subprocess.run(
+                [sys.executable, "-m", "playwright", "install", "chromium"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            st.session_state["playwright_installed"] = True
+        except Exception as e:
+            st.error(f"Gagal menginisialisasi engine PDF: {e}")
 
-# set_page_config tetap berada setelah inisialisasi di atas
+# set_page_config ditempatkan setelah inisialisasi di atas
 st.set_page_config(layout="wide", page_title="Monitoring Jabatan ASN")
 
 # --- CSS KHUSUS TAMPILAN WEB STREAMLIT (DENGAN REKAYASA WRAP TEXT & ANTI-POTONG) ---
