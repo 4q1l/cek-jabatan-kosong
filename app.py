@@ -8,9 +8,12 @@ import os
 import sys
 import subprocess
 
-# --- PERBAIKAN UTAMA: FORCE PLAYWRIGHT PATH DI STREAMLIT CLOUD ---
-# Mengatur environment variable agar Playwright konsisten menggunakan folder lokal venv
-os.environ["PLAYWRIGHT_BROWSERS_PATH"] = os.path.join(os.getcwd(), ".playwright-browsers")
+# Mengatur environment variable wajib agar biner diletakkan di folder proyek kita sendiri
+PLAYWRIGHT_DIR = os.path.join(os.getcwd(), ".playwright-browsers")
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = PLAYWRIGHT_DIR
+
+# set_page_config ditempatkan di baris awal pembuka skrip Anda
+st.set_page_config(layout="wide", page_title="Monitoring Jabatan ASN")
 
 if "playwright_installed" not in st.session_state:
     with st.spinner("Menginisialisasi Chromium Engine untuk PDF (Mohon tunggu, ini hanya sekali saja)..."):
@@ -282,11 +285,30 @@ def get_full_html_document(title_unit, tree_content):
 
 # --- BACKEND FUNCTION: GENERATOR SINGLE PDF ---
 async def generate_pdf_from_html(html_content):
+    # Cek fisik apakah biner browser sudah terinstal di folder .playwright-browsers
+    if not os.path.exists(PLAYWRIGHT_DIR) or len(os.listdir(PLAYWRIGHT_DIR)) == 0:
+        with st.spinner("Mengunduh modul browser pendukung untuk cetak PDF... (Mohon tunggu sebentar, proses ini hanya berjalan sekali saja)"):
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "playwright", "install", "chromium"],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+            except Exception as e:
+                st.error(f"Gagal mengunduh module cetak PDF internal: {e}")
+                return None
+
+    # Mulai proses eksekusi pencetakan PDF
     async with async_playwright() as p:
-        # PERBAIKAN: Tambahkan args=['--no-sandbox', '--disable-setuid-sandbox'] agar lancar di Linux Cloud
         browser = await p.chromium.launch(
             headless=True,
-            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+            args=[
+                '--no-sandbox', 
+                '--disable-setuid-sandbox', 
+                '--disable-dev-shm-usage',
+                '--disable-gpu'
+            ]
         )
         page = await browser.new_page(viewport={"width": 7000, "height": 3000})
         await page.set_content(html_content, wait_until="networkidle")
