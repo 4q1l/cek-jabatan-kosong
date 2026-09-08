@@ -1,4 +1,8 @@
 import streamlit as st
+
+# MUST BE FIRST: set_page_config harus menjadi perintah Streamlit pertama
+st.set_page_config(layout="wide", page_title="Monitoring Jabatan ASN")
+
 import pandas as pd
 import io
 import asyncio
@@ -8,17 +12,14 @@ import os
 import sys
 import subprocess
 
-# Mengatur environment variable wajib agar biner diletakkan di folder proyek kita sendiri
+# Mengatur environment variable wajib agar biner diletakkan di folder proyek
 PLAYWRIGHT_DIR = os.path.join(os.getcwd(), ".playwright-browsers")
 os.environ["PLAYWRIGHT_BROWSERS_PATH"] = PLAYWRIGHT_DIR
 
-# set_page_config ditempatkan di baris awal pembuka skrip Anda
-st.set_page_config(layout="wide", page_title="Monitoring Jabatan ASN")
-
+# Inisialisasi Playwright Chromium jika belum ada
 if "playwright_installed" not in st.session_state:
     with st.spinner("Menginisialisasi Chromium Engine untuk PDF (Mohon tunggu, ini hanya sekali saja)..."):
         try:
-            # Menggunakan sys.executable memastikan kita memakai Python venv Streamlit, BUKAN Python sistem global
             subprocess.run(
                 [sys.executable, "-m", "playwright", "install", "chromium"],
                 check=True,
@@ -29,10 +30,7 @@ if "playwright_installed" not in st.session_state:
         except Exception as e:
             st.error(f"Gagal menginisialisasi engine PDF: {e}")
 
-# set_page_config ditempatkan setelah inisialisasi di atas
-st.set_page_config(layout="wide", page_title="Monitoring Jabatan ASN")
-
-# --- CSS KHUSUS TAMPILAN WEB STREAMLIT (DENGAN REKAYASA WRAP TEXT & ANTI-POTONG) ---
+# --- CSS KHUSUS TAMPILAN WEB STREAMLIT ---
 st.markdown("""
     <style>
     .block-container { padding-top: 2rem; }
@@ -51,35 +49,28 @@ st.markdown("""
     .tree-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: max-content; }
     .tree ul { padding-top: 40px; position: relative; display: flex; justify-content: center; vertical-align: top; }
     
-    /* Setiap rumpun struktur (li) */
     .tree li { float: left; text-align: center; list-style-type: none; position: relative; padding: 40px 5px 0 5px; vertical-align: top; }
     
-    /* Garis Horizontal Penghubung Antar Kotak */
     .tree li::before, .tree li::after { content: ''; position: absolute; top: 0; right: 50%; border-top: 2px solid #ccc; width: 50%; height: 40px; }
     .tree li::after { right: auto; left: 50%; border-left: 2px solid #ccc; }
     
-    /* Menghilangkan garis pembantu untuk kotak tunggal */
     .tree li:only-child::after, .tree li:only-child::before { display: none; }
     .tree li:only-child { padding-top: 0; }
     .tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
     .tree li:last-child::before { border-right: 2px solid #ccc; border-radius: 0 5px 0 0; }
     .tree li:first-child::after { border-radius: 5px 0 0 0; }
     
-    /* Garis Vertikal Utama dari Atasan ke Cabang Bawahan */
     .tree ul ul::before { content: ''; position: absolute; top: 0; left: 50%; border-left: 2px solid #ccc; width: 0; height: 40px; }
     
-    /* =========================================================================
-       PERBAIKAN UTAMA: FORCE WRAP TEXT & BATASI LEBAR KOTAK (NODE CARD)
-       ========================================================================= */
     .node-card { 
         border: 1px solid #ccc; 
         padding: 12px 10px; 
         display: inline-block; 
         border-radius: 8px; 
-        width: 200px;             /* Mengunci lebar ideal kotak */
-        max-width: 220px;         /* Membatasi agar tidak melar ke samping */
-        word-wrap: break-word;    /* Potong kata jika terlalu panjang */
-        white-space: normal;      /* Memaksa teks panjang membuat baris baru ke bawah */
+        width: 200px; 
+        max-width: 220px; 
+        word-wrap: break-word; 
+        white-space: normal; 
         margin: 0px 10px 10px 10px; 
         background-color: white; 
         box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
@@ -90,7 +81,6 @@ st.markdown("""
     .terisi { border-top: 8px solid #2ecc71; }
     .kosong { border-top: 8px solid #e74c3c; background-color: #fff5f5; }
     
-    /* Mengatur text jabatan agar membungkus dengan rapi */
     .text-jabatan { 
         font-size: 12px; 
         font-weight: bold; 
@@ -104,7 +94,6 @@ st.markdown("""
     .text-pangkat { font-size: 10px; color: #2c3e50; margin: 1px 0 4px 0; font-style: italic; }
     .text-eselon { font-size: 9px; background: #ebf2ff; padding: 2px 5px; border-radius: 4px; color: #2980b9; font-weight: bold; display: inline-block; margin-top: 5px;}
     
-    /* Perbaikan Struktur Garis Bertingkat (Eselon A vs Eselon B) */
     .li-level-a { padding-top: 40px !important; }
     .li-level-b { padding-top: 100px !important; }
     .li-level-b::after { height: 100px !important; }
@@ -127,8 +116,8 @@ st.sidebar.markdown("---")
 col_jab_asn = st.sidebar.text_input("Kolom Jabatan di Real ASN", "jabatannama")
 col_nama = st.sidebar.text_input("Kolom Nama Pegawai", "namalengkap")
 col_nip = st.sidebar.text_input("Kolom NIP", "nip")
-col_golongan = st.sidebar.text_input("Kolom Golongan Pegawai", "golruangnama")  # Tambahan Golongan
-col_pangkat = st.sidebar.text_input("Kolom Pangkat Pegawai", "pangkat")      # Tambahan Pangkat
+col_golongan = st.sidebar.text_input("Kolom Golongan Pegawai", "golruangnama")
+col_pangkat = st.sidebar.text_input("Kolom Pangkat Pegawai", "pangkat")
 
 st.sidebar.markdown("---")
 file_asn = st.sidebar.file_uploader("1. Upload Data Real ASN (A-DT)", type=["xlsx"])
@@ -154,7 +143,7 @@ def get_eselon_weight(eselon_val):
     elif '4b' in eselon_str or 'iv.b' in eselon_str: return 6
     return 90
 
-# --- REKURSION TREE GENERATOR ---
+# --- RECURSION TREE GENERATOR ---
 def build_tree_html(df, parent_name=None):
     if parent_name is None or pd.isna(parent_name) or str(parent_name).strip() == "":
         mask = (
@@ -179,11 +168,9 @@ def build_tree_html(df, parent_name=None):
         is_empty = pd.isna(row[col_nama]) or str(row[col_nama]).strip() == "" or str(row[col_nama]).strip().upper() == "NAN"
         status_class = "kosong" if is_empty else "terisi"
         
-        # Jika Jabatan Kosong
         if is_empty:
             nama_display = "❌ KOSONG"
             detail_html = f'<p class="text-nama">{nama_display}</p>'
-        # Jika Jabatan Terisi
         else:
             nama_display = row[col_nama]
             nip_display = row[col_nip] if not pd.isna(row[col_nip]) else "-"
@@ -191,7 +178,6 @@ def build_tree_html(df, parent_name=None):
             pakt_val = row[col_pangkat] if col_pangkat in row and not pd.isna(row[col_pangkat]) else "-"
             eselon_val = row[col_eselon_master] if col_eselon_master in row and not pd.isna(row[col_eselon_master]) else "-"
             
-            # Menyusun HTML menggunakan penggabungan string lurus (menghindari bug spasi enter triple quotes)
             detail_html = (
                 f'<p class="text-nama">{nama_display}</p>'
                 f'<p class="text-pangkat">{pakt_val} ({gol_val})</p>'
@@ -214,7 +200,7 @@ def build_tree_html(df, parent_name=None):
     html += "</ul>"
     return html
 
-# --- HELPER TEMPLATE HTML UNTUK PDF (DENGAN DUKUNGAN ANTIPOTONG DAN WRAP TEXT) ---
+# --- HELPER TEMPLATE HTML UNTUK PDF ---
 def get_full_html_document(title_unit, tree_content):
     return f"""
     <!DOCTYPE html>
@@ -285,30 +271,18 @@ def get_full_html_document(title_unit, tree_content):
 
 # --- BACKEND FUNCTION: GENERATOR SINGLE PDF ---
 async def generate_pdf_from_html(html_content):
-    # Cek fisik apakah biner browser sudah terinstal di folder .playwright-browsers
     if not os.path.exists(PLAYWRIGHT_DIR) or len(os.listdir(PLAYWRIGHT_DIR)) == 0:
-        with st.spinner("Mengunduh modul browser pendukung untuk cetak PDF... (Mohon tunggu sebentar, proses ini hanya berjalan sekali saja)"):
-            try:
-                subprocess.run(
-                    [sys.executable, "-m", "playwright", "install", "chromium"],
-                    check=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
-            except Exception as e:
-                st.error(f"Gagal mengunduh module cetak PDF internal: {e}")
-                return None
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
 
-    # Mulai proses eksekusi pencetakan PDF
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
-            args=[
-                '--no-sandbox', 
-                '--disable-setuid-sandbox', 
-                '--disable-dev-shm-usage',
-                '--disable-gpu'
-            ]
+            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
         )
         page = await browser.new_page(viewport={"width": 7000, "height": 3000})
         await page.set_content(html_content, wait_until="networkidle")
@@ -387,25 +361,21 @@ if file_asn and file_master:
     df_asn = pd.read_excel(file_asn)
     df_master = pd.read_excel(file_master)
 
-    # Pembersihan karakter _x000D_ dan Enter tersembunyi
     for col in [col_unit_master, col_jab_master, col_atasan_master, col_eselon_master]:
         if col in df_master.columns:
             df_master[col] = df_master[col].astype(str).str.replace(r'[\r\n]', '', regex=True)
             df_master[col] = df_master[col].astype(str).str.replace('_x000D_', '', regex=True, case=False).str.strip()
 
-    # Bersihkan kolom pendukung di file ASN
     cols_to_clean_asn = [col_jab_asn, col_nama, col_nip, col_golongan, col_pangkat]
     for col in cols_to_clean_asn:
         if col in df_asn.columns:
             df_asn[col] = df_asn[col].astype(str).str.replace(r'[\r\n]', '', regex=True)
             df_asn[col] = df_asn[col].astype(str).str.replace('_x000D_', '', regex=True, case=False).str.strip()
 
-    # Normalisasi string ke UPPERCASE untuk keperluan Key Matching
     df_asn[col_jab_asn] = df_asn[col_jab_asn].astype(str).str.upper()
     df_master[col_jab_master] = df_master[col_jab_master].astype(str).str.upper()
     df_master[col_atasan_master] = df_master[col_atasan_master].astype(str).str.upper()
 
-    # Tarik kolom nama, nip, golongan, dan pangkat berdasarkan nama jabatan
     df_merge = pd.merge(df_master, df_asn[[col_jab_asn, col_nama, col_nip, col_golongan, col_pangkat]], 
                         left_on=col_jab_master, right_on=col_jab_asn, how='left')
     
@@ -417,7 +387,6 @@ if file_asn and file_master:
         if col_unit_master in df_merge.columns:
             unit_list = df_merge[col_unit_master].unique()
             
-            # --- TOMBOL DOWNLOAD MASAL (ZIP) ---
             st.markdown("### 📦 Ekspor Masal Seluruh Struktur Dinas")
             st.write("Klik tombol di bawah untuk membuat dan mengunduh bagan PDF seluruh OPD sekaligus dalam satu file kompresi.")
             
@@ -432,7 +401,6 @@ if file_asn and file_master:
                     )
             st.markdown("---")
             
-            # --- VISUALISASI PER UNIT ---
             selected_unit = st.selectbox("Pilih Unit Kerja Tampilan:", unit_list)
             df_unit = df_merge[df_merge[col_unit_master] == selected_unit]
             
@@ -454,7 +422,6 @@ if file_asn and file_master:
             
             st.write("") 
             
-            # Download PDF Per Unit tunggal
             html_document_for_pdf = get_full_html_document(selected_unit, tree_html)
             if st.button("📥 Download Bagan Unit Ini Saja (PDF)", type="primary"):
                 with st.spinner("Memproses layout PDF..."):
@@ -477,7 +444,6 @@ if file_asn and file_master:
         opsi = st.radio("Tampilkan Data:", ["Semua", "Hanya Kosong", "Hanya Terisi"], horizontal=True)
         df_table = df_merge[df_merge['Status'] == "KOSONG"] if opsi == "Hanya Kosong" else (df_merge[df_merge['Status'] == "TERISI"] if opsi == "Hanya Terisi" else df_merge)
         
-        # Tampilkan kolom tambahan pangkat & golongan di tabel rekapitulasi data
         st.dataframe(df_table[[col_unit_master, col_jab_master, col_eselon_master, 'Status', col_nama, col_pangkat, col_golongan]], use_container_width=True)
 
         def download_excel(df_all):
