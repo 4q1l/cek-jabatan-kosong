@@ -429,17 +429,21 @@ if file_asn and file_master:
             st.write("") 
             
             html_document_for_pdf = get_full_html_document(selected_unit, tree_html)
-            if st.button("📥 Download Bagan Unit Ini Saja (PDF)", type="primary"):
+            
+            # Eksekusi pembuatan PDF
+            try:
                 with st.spinner("Memproses layout PDF..."):
                     pdf_data = asyncio.run(generate_pdf_from_html(html_document_for_pdf))
-                    st.download_button(
-                        label="Klik di Sini untuk Mengunduh Berkas PDF",
-                        data=pdf_data,
-                        file_name=f"Bagan_Struktur_{selected_unit.replace(' ', '_')}.pdf",
-                        mime="application/pdf"
-                    )
-        else:
-            st.error(f"Kolom '{col_unit_master}' tidak ditemukan di file Master.")
+                    
+                st.download_button(
+                    label="📥 Download Bagan Unit Ini Saja (PDF)",
+                    data=pdf_data,
+                    file_name=f"Bagan_Struktur_{selected_unit.replace(' ', '_')}.pdf",
+                    mime="application/pdf",
+                    type="primary"
+                )
+            except Exception as e:
+                st.error(f"Gagal membuat PDF: {e}")
 
     with tab2:
         m1, m2, m3 = st.columns(3)
