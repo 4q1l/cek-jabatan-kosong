@@ -20,8 +20,9 @@ os.environ["PLAYWRIGHT_BROWSERS_PATH"] = PLAYWRIGHT_DIR
 if "playwright_installed" not in st.session_state:
     with st.spinner("Menginisialisasi Chromium Engine untuk PDF (Mohon tunggu, ini hanya sekali saja)..."):
         try:
+            # Tambahkan "--with-deps" agar Playwright memasang system dependencies Linux
             subprocess.run(
-                [sys.executable, "-m", "playwright", "install", "chromium"],
+                [sys.executable, "-m", "playwright", "install", "chromium", "--with-deps"],
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
@@ -269,11 +270,10 @@ def get_full_html_document(title_unit, tree_content):
     </html>
     """
 
-# --- BACKEND FUNCTION: GENERATOR SINGLE PDF ---
 async def generate_pdf_from_html(html_content):
     if not os.path.exists(PLAYWRIGHT_DIR) or len(os.listdir(PLAYWRIGHT_DIR)) == 0:
         subprocess.run(
-            [sys.executable, "-m", "playwright", "install", "chromium"],
+            [sys.executable, "-m", "playwright", "install", "chromium", "--with-deps"],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -282,7 +282,13 @@ async def generate_pdf_from_html(html_content):
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
-            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+            args=[
+                '--no-sandbox', 
+                '--disable-setuid-sandbox', 
+                '--disable-dev-shm-usage', 
+                '--disable-gpu',
+                '--single-process'
+            ]
         )
         page = await browser.new_page(viewport={"width": 7000, "height": 3000})
         await page.set_content(html_content, wait_until="networkidle")
