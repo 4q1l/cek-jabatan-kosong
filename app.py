@@ -1,6 +1,6 @@
 import streamlit as st
 
-# MUST BE FIRST: set_page_config harus menjadi perintah Streamlit pertama
+# MUST BE FIRST: set_page_config
 st.set_page_config(layout="wide", page_title="Monitoring Jabatan ASN")
 
 import pandas as pd
@@ -12,17 +12,17 @@ import os
 import sys
 import subprocess
 
-# Mengatur environment variable wajib agar biner diletakkan di folder proyek
+# Mengatur environment variable agar biner diletakkan di folder proyek
 PLAYWRIGHT_DIR = os.path.join(os.getcwd(), ".playwright-browsers")
 os.environ["PLAYWRIGHT_BROWSERS_PATH"] = PLAYWRIGHT_DIR
 
 # Inisialisasi Playwright Chromium jika belum ada
 if "playwright_installed" not in st.session_state:
-    with st.spinner("Menginisialisasi Chromium Engine untuk PDF (Mohon tunggu, ini hanya sekali saja)..."):
+    with st.spinner("Menginisialisasi Chromium Engine untuk PDF..."):
         try:
-            # Tambahkan "--with-deps" agar Playwright memasang system dependencies Linux
+            # Tanpa --with-deps karena dipasang lewat packages.txt
             subprocess.run(
-                [sys.executable, "-m", "playwright", "install", "chromium", "--with-deps"],
+                [sys.executable, "-m", "playwright", "install", "chromium"],
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
@@ -273,7 +273,7 @@ def get_full_html_document(title_unit, tree_content):
 async def generate_pdf_from_html(html_content):
     if not os.path.exists(PLAYWRIGHT_DIR) or len(os.listdir(PLAYWRIGHT_DIR)) == 0:
         subprocess.run(
-            [sys.executable, "-m", "playwright", "install", "chromium", "--with-deps"],
+            [sys.executable, "-m", "playwright", "install", "chromium"],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -286,8 +286,8 @@ async def generate_pdf_from_html(html_content):
                 '--no-sandbox', 
                 '--disable-setuid-sandbox', 
                 '--disable-dev-shm-usage', 
-                '--disable-gpu',
-                '--single-process'
+                '--disable-gpu'
+                # Jangan gunakan '--single-process'
             ]
         )
         page = await browser.new_page(viewport={"width": 7000, "height": 3000})
