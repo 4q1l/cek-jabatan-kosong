@@ -364,7 +364,8 @@ async def generate_all_charts_zip(df_master_merge, col_unit, build_tree_fn):
 
 # Eksekusi Pemrosesan File
 if file_asn and file_master:
-    df_asn = pd.read_excel(file_asn)
+    # Membaca file dengan parameter dtype=str khusus untuk kolom NIP
+    df_asn = pd.read_excel(file_asn, dtype={col_nip: str})
     df_master = pd.read_excel(file_master)
 
     for col in [col_unit_master, col_jab_master, col_atasan_master, col_eselon_master]:
