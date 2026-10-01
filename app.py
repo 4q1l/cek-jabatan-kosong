@@ -169,21 +169,36 @@ def build_tree_html(df, parent_name=None):
         is_empty = pd.isna(row[col_nama]) or str(row[col_nama]).strip() == "" or str(row[col_nama]).strip().upper() == "NAN"
         status_class = "kosong" if is_empty else "terisi"
         
+        # Format string Eselon dengan awalan "Eselon "
+        raw_eselon = row[col_eselon_master] if col_eselon_master in row and not pd.isna(row[col_eselon_master]) else ""
+        raw_eselon_str = str(raw_eselon).strip()
+        
+        if raw_eselon_str != "" and raw_eselon_str.upper() != "NAN" and raw_eselon_str != "-":
+            # Jika tulisan 'eselon' belum ada, tambahkan di depan
+            if not raw_eselon_str.lower().startswith("eselon"):
+                eselon_display = f"Eselon {raw_eselon_str}"
+            else:
+                eselon_display = raw_eselon_str
+        else:
+            eselon_display = "-"
+        
         if is_empty:
             nama_display = "❌ KOSONG"
-            detail_html = f'<p class="text-nama">{nama_display}</p>'
+            detail_html = (
+                f'<p class="text-nama">{nama_display}</p>'
+                f'<span class="text-eselon">{eselon_display}</span>'
+            )
         else:
             nama_display = row[col_nama]
             nip_display = row[col_nip] if not pd.isna(row[col_nip]) else "-"
             gol_val = row[col_golongan] if col_golongan in row and not pd.isna(row[col_golongan]) else "-"
             pakt_val = row[col_pangkat] if col_pangkat in row and not pd.isna(row[col_pangkat]) else "-"
-            eselon_val = row[col_eselon_master] if col_eselon_master in row and not pd.isna(row[col_eselon_master]) else "-"
             
             detail_html = (
                 f'<p class="text-nama">{nama_display}</p>'
                 f'<p class="text-pangkat">{pakt_val} ({gol_val})</p>'
                 f'<p class="text-nip">NIP: {nip_display}</p>'
-                f'<span class="text-eselon">{eselon_val}</span>'
+                f'<span class="text-eselon">{eselon_display}</span>'
             )
             
         eselon_val_raw = row[col_eselon_master] if col_eselon_master in row and not pd.isna(row[col_eselon_master]) else "-"
@@ -287,7 +302,6 @@ async def generate_pdf_from_html(html_content):
                 '--disable-setuid-sandbox', 
                 '--disable-dev-shm-usage', 
                 '--disable-gpu'
-                # Jangan gunakan '--single-process'
             ]
         )
         page = await browser.new_page(viewport={"width": 7000, "height": 3000})
